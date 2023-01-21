@@ -3,9 +3,9 @@
 
 **Capstone Team 2022586:**
 
-Alexandre Gouveia Rodrigues
-Mahshad Jalali
-Maha Mukhtar
-Ahoo Saeifar
+Alexandre Gouveia Rodrigues  
+Mahshad Jalali  
+Maha Mukhtar  
+Ahoo Saeifar  
 
-This repo is a clone of https://github.com/miguelgrinberg/flasky
+This repo is a clone of https://github.com/hyperledger/fabric-samples

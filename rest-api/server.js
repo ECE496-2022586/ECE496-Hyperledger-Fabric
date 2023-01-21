@@ -6,8 +6,8 @@ const app = express()
 const { Gateway, Wallets } = require('fabric-network');
 const FabricCAServices = require('fabric-ca-client');
 const path = require('path');
-const { buildCAClient, registerAndEnrollUser, enrollAdmin } = require('../../test-application/javascript/CAUtil.js');
-const { buildCCPHospital, buildWallet } = require('../../test-application/javascript/AppUtil.js');
+const { buildCAClient, registerAndEnrollUser, enrollAdmin } = require('../test-application/javascript/CAUtil.js');
+const { buildCCPHospital, buildWallet } = require('../test-application/javascript/AppUtil.js');
 
 const channelName = 'mychannel';
 const chaincodeName = 'basic';
@@ -125,12 +125,12 @@ app.get("/init", async (req, res) => {
         const contract = network.getContract(chaincodeName);
 
         console.log('\n--> Evaluate Transaction: GetAllAssets, function returns all the current assets on the ledger');
-        let result = await contract.evaluateTransaction('GetAllAssets');
+        let result = await contract.evaluateTransaction('ReadAsset', '567891234');
         console.log(`*** Result: ${prettyJSONString(result.toString())}`);
 
         gateway.disconnect();
 
-        res.json(result)
+        res.json(prettyJSONString(result.toString()))
 
     } catch (error) {
         console.error(`******** FAILED: ${error}`);
@@ -138,4 +138,4 @@ app.get("/init", async (req, res) => {
 })
 
 
-app.listen(5000, () => { console.log("Server started on port 5000") })
+app.listen(5001, () => { console.log("Server started on port 5001") })

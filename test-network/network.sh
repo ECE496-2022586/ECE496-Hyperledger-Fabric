@@ -45,9 +45,7 @@ function removeUnwantedImages() {
 # Versions of fabric known not to work with the test network
 NONWORKING_VERSIONS="^1\.0\. ^1\.1\. ^1\.2\. ^1\.3\. ^1\.4\."
 
-# Do some basic sanity checking to make sure that the appropriate versions of fabric
-# binaries/images are available. In the future, additional checking for the presence
-# of go or other items could be added.
+# Do some basic sanity checking to make sure that the appropriate versions of fabric binaries/images are available.
 function checkPrereqs() {
   ## Check if your have cloned the peer binaries and configuration files.
   peer version > /dev/null 2>&1
@@ -59,8 +57,7 @@ function checkPrereqs() {
     errorln "https://hyperledger-fabric.readthedocs.io/en/latest/install.html"
     exit 1
   fi
-  # use the fabric tools container to see if the samples and binaries match your
-  # docker images
+  # use the fabric tools container to see if the samples and binaries match your docker images
   LOCAL_VERSION=$(peer version | sed -ne 's/^ Version: //p')
   DOCKER_IMAGE_VERSION=$(docker run --rm hyperledger/fabric-tools:$IMAGETAG peer version | sed -ne 's/^ Version: //p')
 
@@ -305,6 +302,18 @@ function createChannel() {
 
 ## Call the script to deploy a chaincode to the channel
 function deployCC() {
+  infoln "CC_NAME: '${CC_NAME}'"
+  infoln "CC_SRC_PATH: '${CC_SRC_PATH}'"
+  infoln "CC_SRC_LANGUAGE: '${CC_SRC_LANGUAGE}'"
+  infoln "CC_VERSION: '${CC_VERSION}'"
+  infoln "CC_SEQUENCE: '${CC_SEQUENCE}'"
+  infoln "CC_INIT_FCN: '${CC_INIT_FCN}'"
+  infoln "CC_END_POLICY: '${CC_END_POLICY}'"
+  infoln "CC_COLL_CONFIG: '${CC_COLL_CONFIG}'"
+  infoln "CLI_DELAY: '${CLI_DELAY}'"
+  infoln "MAX_RETRY: '${MAX_RETRY}'"
+  infoln "VERBOSE: '${VERBOSE}'"
+
   scripts/deployCC.sh $CHANNEL_NAME $CC_NAME $CC_SRC_PATH $CC_SRC_LANGUAGE $CC_VERSION $CC_SEQUENCE $CC_INIT_FCN $CC_END_POLICY $CC_COLL_CONFIG $CLI_DELAY $MAX_RETRY $VERBOSE
 
   if [ $? -ne 0 ]; then

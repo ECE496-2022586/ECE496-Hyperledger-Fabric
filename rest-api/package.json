@@ -1,5 +1,5 @@
 {
-  "name": "application-javascript-backend",
+  "name": "rest-api",
   "version": "1.0.0",
   "description": "",
   "main": "server.js",

@@ -10,7 +10,8 @@ Ahoo Saeifar
 
 This repo is a clone of https://github.com/hyperledger/fabric-samples
 
-**Pre-requisites**
+**Pre-requisites**  
+
 Linux OS  
 Python 2.7  
 NPM (latest)  

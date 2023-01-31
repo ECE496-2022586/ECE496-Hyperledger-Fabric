@@ -63,6 +63,12 @@ class AssetTransfer extends Contract {
         }
     }
 
+    // Create User
+    async CreateUser(ctx, username) {
+        await ctx.stub.putState(username, Buffer.from(JSON.stringify(username)));
+        return JSON.stringify(username);
+    }
+
     // CreateAsset issues a new asset to the world state with given details.
     async CreateAsset(ctx, id, color, size, owner, appraisedValue) {
         const asset = {

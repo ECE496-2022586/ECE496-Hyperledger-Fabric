@@ -8,6 +8,12 @@
 
 const { Contract } = require('fabric-contract-api');
 
+async function getCollectionName(ctx) {
+    const mspid = ctx.clientIdentity.getMSPID();
+    const collectionName = `_implicit_org_${mspid}`;
+    return collectionName;
+}
+
 class AssetTransfer extends Contract {
 
     async InitLedger(ctx) {
@@ -61,6 +67,12 @@ class AssetTransfer extends Contract {
             await ctx.stub.putState(asset.ID, Buffer.from(JSON.stringify(asset)));
             console.info(`Asset ${asset.ID} initialized`);
         }
+    }
+
+    // Create User
+    async CreateUser(ctx, username) {
+        await ctx.stub.putState(username, Buffer.from(JSON.stringify(username)));
+        return JSON.stringify(username);
     }
 
     // CreateAsset issues a new asset to the world state with given details.
@@ -145,6 +157,40 @@ class AssetTransfer extends Contract {
             result = await iterator.next();
         }
         return JSON.stringify(allResults);
+    }
+
+    async registerUser(ctx, username, password, identity, id) {
+        let returnMsg = { success: false, description: 'Register Failled, username have already exist' }
+        try {
+            const collectionName = await getCollectionName(ctx);
+            console.info("123123");
+            const buffer = await ctx.stub.getPrivateData(collectionName, username);
+            let exist = (!!buffer && buffer.length > 0);
+            if (!exist) {
+                let User_info = {
+                    password: password,
+                    identity: identity,
+                    id: id
+                };
+                await ctx.stub.putPrivateData(collectionName, username, Buffer.from(JSON.stringify(User_info)));
+                returnMsg = { success: true, description: 'Registered successfully' }
+            }
+        } catch (error) {
+            return { success: false, description: error }
+        }
+        return returnMsg;
+    }
+
+    async queryUser(ctx, username) {
+        const collectionName = await getCollectionName(ctx);
+        const privateData = await ctx.stub.getPrivateData(collectionName, username);
+        let exist = (!!privateData && privateData.length > 0);
+        if (!exist) {
+            return { success: false, description: `The user of ${username} does not exist` }
+        }
+        const returnMsg = JSON.parse(privateData.toString());
+
+        return { success: true, description: `The user of ${username} does exist` }
     }
 
 

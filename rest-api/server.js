@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const { invokeTransaction } = require('./invoke');
+const { evaluateTransaction } = require('./query');
 const { enrollAdmins, registerAndEnrollUser } = require('./registration');
 
 const app = express()
@@ -32,27 +33,74 @@ app.post("/admins", async (req, res) => {
     }
 })
 
-// Register and enroll new user
+// Register and enroll new patient
 app.post("/user", async (req, res) => {
     try {
+        const firstName = req.body.firstName;
+        const lastName = req.body.lastName;
+        const email = req.body.email;
         const username = req.body.username;
+        const password = req.body.password;
+        const encryptionKey = req.body.encryptionKey;
+        const identity = req.body.identity;
         const organization = req.body.organization;
-        const affiliation = req.body.affiliation;
 
-        await registerAndEnrollUser(username, organization, affiliation)
+        await registerAndEnrollUser(username, organization);
 
-        const fcn = "CreateUser"
-        const args = {
-            username: username
-        }
+        let fcn = "CreateUser";
+        let args = [firstName, lastName, email, username, password, encryptionKey, identity, organization];
 
-        await invokeTransaction(channelName, chaincodeName, fcn, args, username, organization)
+        await invokeTransaction(channelName, chaincodeName, organization, username, fcn, args);
 
-        let response = {
-            message: "SUCCESS: User has been successfully registered and enrolled."
-        }
+        fcn = "QueryUser";
+        args = [username];
 
-        res.json(response)
+        const response = await evaluateTransaction(channelName, chaincodeName, organization, username, fcn, args);
+
+        res.json(response);
+    }
+    catch (error) {
+        console.error(`FAILED: ${error}`);
+    }
+})
+
+// Login
+app.post("/login", async (req, res) => {
+    try {
+        const username = req.body.username;
+        const password = req.body.password;
+        const encryptionKey = req.body.encryptionKey;
+        const organization = req.body.organization;
+
+        let fcn = "ValidateLogin";
+        let args = [username, password, encryptionKey];
+
+        await invokeTransaction(channelName, chaincodeName, organization, username, fcn, args);
+
+        fcn = "QueryUser";
+        args = [username];
+
+        const response = await evaluateTransaction(channelName, chaincodeName, organization, username, fcn, args);
+
+        res.json(response);
+    }
+    catch (error) {
+        console.error(`FAILED: ${error}`);
+    }
+})
+
+// Get user information
+app.get("/user/:username", async (req, res) => {
+    try {
+        const username = req.params.username;
+        const organization = req.body.organization;
+
+        const fcn = "QueryUser";
+        const args = [username];
+
+        const response = await evaluateTransaction(channelName, chaincodeName, organization, username, fcn, args);
+
+        res.json(response);
     }
     catch (error) {
         console.error(`FAILED: ${error}`);

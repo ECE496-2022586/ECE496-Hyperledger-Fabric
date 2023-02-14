@@ -37,7 +37,7 @@ exports.enrollAdmins = async () => {
     }
 }
 
-exports.registerAndEnrollUser = async (username, organization, affiliation) => {
+exports.registerAndEnrollUser = async (username, organization) => {
     try {
         const ccp = buildCCP(organization);
         const caClient = buildCAClient(ccp, organization);
@@ -66,7 +66,6 @@ exports.registerAndEnrollUser = async (username, organization, affiliation) => {
         // Register the user, enroll the user, and import the new identity into the wallet.
         // if affiliation is specified by client, the affiliation value must be configured in CA
         const secret = await caClient.register({
-            affiliation: affiliation,
             enrollmentID: username,
             role: 'client'
         }, adminUser);

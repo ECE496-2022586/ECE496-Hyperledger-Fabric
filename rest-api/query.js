@@ -2,7 +2,7 @@ const path = require('path');
 const { Gateway, Wallets } = require('fabric-network');
 const { buildCCP, buildWallet } = require('./helper');
 
-exports.invokeTransaction = async (channelName, chaincodeName, organization, username, fcn, args) => {
+exports.evaluateTransaction = async (channelName, chaincodeName, organization, username, fcn, args) => {
     const ccp = buildCCP(organization);
     const walletPath = path.join(__dirname, 'wallet/' + organization);
     const wallet = await buildWallet(Wallets, walletPath);
@@ -43,9 +43,13 @@ exports.invokeTransaction = async (channelName, chaincodeName, organization, use
     // Get the contract from the network.
     const contract = network.getContract(chaincodeName);
 
-    // Perform transaction based on fcn
-    console.log(`\n--> Submit Transaction: ${fcn}`);
-    await contract.submitTransaction(fcn, ...args);
+    // Evaluate transaction based on fcn
+    console.log(`\n--> Evaluate Transaction: ${fcn}`);
+    const response = await contract.evaluateTransaction(fcn, ...args);
+
+    const responseJSON = JSON.parse(response.toString());
 
     gateway.disconnect();
+
+    return responseJSON;
 }

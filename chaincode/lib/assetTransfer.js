@@ -7,6 +7,7 @@
 'use strict';
 
 const { Contract } = require('fabric-contract-api');
+const CryptoJS = require("crypto-js");
 
 class AssetTransfer extends Contract {
 
@@ -64,9 +65,67 @@ class AssetTransfer extends Contract {
     }
 
     // Create User
-    async CreateUser(ctx, username) {
-        await ctx.stub.putState(username, Buffer.from(JSON.stringify(username)));
-        return JSON.stringify(username);
+    async CreateUser(ctx, firstName, lastName, email, username, password, encryptionKey, identity, organization) {
+        const hash = CryptoJS.SHA256(encryptionKey);
+
+        const ciphertext = CryptoJS.AES.encrypt(password, hash, { mode: CryptoJS.mode.ECB }).toString();
+
+        const credentials = {
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            username: username,
+            password: ciphertext,
+            identity: identity,
+            organization: organization
+        }
+
+        await ctx.stub.putState(username, Buffer.from(JSON.stringify(credentials)));
+    }
+
+    // Validate Login
+    async ValidateLogin(ctx, username, password, encryptionKey) {
+        const credentials = await ctx.stub.getState(username);
+
+        if (!credentials || credentials.toString().length <= 0) {
+            throw new Error("Invalid username");
+        } else {
+            const credentialsJSON = JSON.parse(credentials);
+
+            const encryptedPassword = credentialsJSON.password;
+
+            const hash = CryptoJS.SHA256(encryptionKey)
+
+            const bytes = CryptoJS.AES.decrypt(encryptedPassword, hash, { mode: CryptoJS.mode.ECB });
+
+            const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+
+            if (password != decrypted) {
+                throw new Error("Invalid password");
+            }
+        }
+    }
+
+    // Query User
+    async QueryUser(ctx, username) {
+        const credentials = await ctx.stub.getState(username);
+
+        if (!credentials || credentials.length === 0) {
+            throw new Error('User does not exist');
+        }
+
+        const credentialsJSON = JSON.parse(credentials);
+
+        const user = {
+            firstName: credentialsJSON.firstName,
+            lastName: credentialsJSON.lastName,
+            email: credentialsJSON.email,
+            username: credentialsJSON.username,
+            identity: credentialsJSON.identity,
+            organization: credentialsJSON.organization
+        }
+
+        return JSON.stringify(user);
     }
 
     // CreateAsset issues a new asset to the world state with given details.

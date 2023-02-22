@@ -1,5 +1,5 @@
 const path = require('path');
-const { Gateway, Wallets } = require('fabric-network');
+const { Wallets } = require('fabric-network');
 const { buildCCP, buildWallet, buildCAClient, enrollAdmin } = require('./helper');
 
 const adminUserId = 'admin';

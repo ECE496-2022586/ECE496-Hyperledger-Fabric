@@ -29,7 +29,8 @@ app.post("/admins", async (req, res) => {
         res.json(response)
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })
 
@@ -60,7 +61,8 @@ app.post("/patient", async (req, res) => {
         res.json(response);
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })
 
@@ -91,7 +93,8 @@ app.post("/doctor", async (req, res) => {
         res.json(response);
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })
 
@@ -121,7 +124,8 @@ app.post("/login", async (req, res) => {
         res.json(response);
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })
 
@@ -139,7 +143,8 @@ app.get("/patients/:patient", async (req, res) => {
         res.json(response);
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })
 
@@ -157,7 +162,8 @@ app.get("/doctors/:doctor", async (req, res) => {
         res.json(response);
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })
 
@@ -181,7 +187,8 @@ app.post("/patients/:patient/pendingRequests/:doctor", async (req, res) => {
         res.json(response);
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })
 
@@ -211,7 +218,8 @@ app.post("/patients/:patient/approvedRequests/:doctor", async (req, res) => {
         res.json(response);
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })
 
@@ -240,7 +248,8 @@ app.delete("/patients/:username/approvedRequests/:doctor", async (req, res) => {
         res.json(response);
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })
 
@@ -257,7 +266,8 @@ app.get("/assets", async (req, res) => {
         res.json(response);
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })
 
@@ -275,6 +285,7 @@ app.get("/assets/:id/history", async (req, res) => {
         res.json(response);
     }
     catch (error) {
-        console.error(`FAILED: ${error}`);
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
     }
 })

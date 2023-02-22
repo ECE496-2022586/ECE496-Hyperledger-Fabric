@@ -1,9 +1,8 @@
+require('dotenv').config()
+
 const path = require('path');
 const { Wallets } = require('fabric-network');
 const { buildCCP, buildWallet, buildCAClient, enrollAdmin } = require('./helper');
-
-const adminUserId = 'admin';
-const adminUserPasswd = 'adminpw';
 
 const organizations = {
     hospital: {
@@ -47,21 +46,20 @@ exports.registerAndEnrollUser = async (username, organization) => {
         // Check to see if we've already enrolled the user
         const userIdentity = await wallet.get(username);
         if (userIdentity) {
-            console.log(`An identity for the user ${username} already exists in the wallet`);
-            return;
+            console.error(`An identity for the user ${username} already exists in the wallet`);
+            throw {code : 409, message : "User already exists."};
         }
 
         // Must use an admin to register a new user
-        const adminIdentity = await wallet.get(adminUserId);
+        const adminIdentity = await wallet.get(process.env.ADMIN_USER_ID);
         if (!adminIdentity) {
-            console.log('An identity for the admin user does not exist in the wallet');
-            console.log('Enroll the admin user before retrying');
-            return;
+            console.error('An identity for the admin user does not exist in the wallet');
+            throw {code : 500, message : "Internal Server Error."};
         }
 
         // build a user object for authenticating with the CA
         const provider = wallet.getProviderRegistry().getProvider(adminIdentity.type);
-        const adminUser = await provider.getUserContext(adminIdentity, adminUserId);
+        const adminUser = await provider.getUserContext(adminIdentity, process.env.ADMIN_USER_ID);
 
         // Register the user, enroll the user, and import the new identity into the wallet.
         // if affiliation is specified by client, the affiliation value must be configured in CA

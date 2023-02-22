@@ -1,8 +1,13 @@
+require('dotenv').config()
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const { invokeTransaction } = require('./invoke');
 const { evaluateTransaction } = require('./query');
 const { enrollAdmins, registerAndEnrollUser } = require('./registration');
+const { authenticateToken } = require('./helper');
+
+const jwt = require('jsonwebtoken')
 
 const app = express()
 
@@ -121,7 +126,9 @@ app.post("/login", async (req, res) => {
 
         const response = await evaluateTransaction(channelName, chaincodeName, organization, username, fcn, args);
 
-        res.json(response);
+        const accessToken = jwt.sign(response, process.env.JWT_SECRET);
+
+        res.json(accessToken);
     }
     catch (error) {
         console.error(`FAILED: ${error.message}`);
@@ -130,10 +137,17 @@ app.post("/login", async (req, res) => {
 })
 
 // Get patient information
-app.get("/patients/:patient", async (req, res) => {
+app.get("/patients/:patient", authenticateToken, async (req, res) => {
     try {
         const username = req.params.patient;
-        const organization = req.body.organization;
+
+        const user = req.user;
+
+        if (user.identity != "doctor" && user.username != username){
+            throw {code : 403, message : "User not Authorized."};
+        }
+
+        const organization = user.organization;
 
         const fcn = "QueryPatient";
         const args = [username];
@@ -149,10 +163,17 @@ app.get("/patients/:patient", async (req, res) => {
 })
 
 // Get doctor information
-app.get("/doctors/:doctor", async (req, res) => {
+app.get("/doctors/:doctor", authenticateToken, async (req, res) => {
     try {
         const username = req.params.doctor;
-        const organization = req.body.organization;
+
+        const user = req.user;
+
+        if (user.identity != "doctor" || user.username != username){
+            throw {code : 403, message : "User not Authorized."};
+        }
+
+        const organization = user.organization;
 
         const fcn = "QueryDoctor";
         const args = [username];
@@ -168,11 +189,18 @@ app.get("/doctors/:doctor", async (req, res) => {
 })
 
 // Send access request
-app.post("/patients/:patient/pendingRequests/:doctor", async (req, res) => {
+app.post("/patients/:patient/pendingRequests/:doctor", authenticateToken, async (req, res) => {
     try {
         const patient = req.params.patient;
         const doctor = req.params.doctor;
-        const organization = req.body.organization;
+
+        const user = req.user;
+
+        if (user.identity != "doctor" || user.username != doctor){
+            throw {code : 403, message : "User not Authorized."};
+        }
+
+        const organization = user.organization;
 
         let fcn = "SubmitRequest";
         let args = [patient, doctor];
@@ -182,7 +210,7 @@ app.post("/patients/:patient/pendingRequests/:doctor", async (req, res) => {
         fcn = "QueryPatient";
         args = [patient];
 
-        const response = await evaluateTransaction(channelName, chaincodeName, organization, patient, fcn, args);
+        const response = await evaluateTransaction(channelName, chaincodeName, organization, doctor, fcn, args);
 
         res.json(response);
     }
@@ -193,12 +221,19 @@ app.post("/patients/:patient/pendingRequests/:doctor", async (req, res) => {
 })
 
 // Approve access request
-app.post("/patients/:patient/approvedRequests/:doctor", async (req, res) => {
+app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async (req, res) => {
     try {
         const patient = req.params.patient;
         const doctor = req.params.doctor;
-        const organization = req.body.organization;
         const encryptionKey = req.body.encryptionKey;
+
+        const user = req.user;
+
+        if (user.identity != "patient" || user.username != patient){
+            throw {code : 403, message : "User not Authorized."};
+        }
+
+        const organization = user.organization;
 
         let fcn = "ApproveRequest";
         let args = [patient, doctor];
@@ -224,11 +259,18 @@ app.post("/patients/:patient/approvedRequests/:doctor", async (req, res) => {
 })
 
 // Delete access request
-app.delete("/patients/:username/approvedRequests/:doctor", async (req, res) => {
+app.delete("/patients/:username/approvedRequests/:doctor", authenticateToken, async (req, res) => {
     try {
         const patient = req.params.username;
         const doctor = req.params.doctor;
-        const organization = req.body.organization;
+
+        const user = req.user;
+
+        if (user.identity != "patient" || user.username != patient){
+            throw {code : 403, message : "User not Authorized."};
+        }
+
+        const organization = user.organization;
 
         let fcn = "RemoveRequest";
         let args = [patient, doctor];
@@ -253,10 +295,11 @@ app.delete("/patients/:username/approvedRequests/:doctor", async (req, res) => {
     }
 })
 
-app.get("/assets", async (req, res) => {
+app.get("/assets", authenticateToken, async (req, res) => {
     try {
-        const organization = req.body.organization;
-        const username = req.body.username;
+        const user = req.user;
+        const organization = user.organization;
+        const username = user.username;
 
         fcn = "GetAllAssets";
         args = [];
@@ -271,11 +314,12 @@ app.get("/assets", async (req, res) => {
     }
 })
 
-app.get("/assets/:id/history", async (req, res) => {
+app.get("/assets/:id/history", authenticateToken, async (req, res) => {
     try {
         const id = req.params.id;
-        const organization = req.body.organization;
-        const username = req.body.username;
+        const user = req.user;
+        const organization = user.organization;
+        const username = user.username;
 
         fcn = "GetAssetHistory";
         args = [id];

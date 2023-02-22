@@ -28,7 +28,8 @@ exports.buildCCP = (organization) => {
 	const ccpPath = path.resolve(__dirname, '..', 'test-network', 'organizations', 'peerOrganizations', organizations[organization].peer, organizations[organization].jsonCCP);
 	const fileExists = fs.existsSync(ccpPath);
 	if (!fileExists) {
-		throw new Error(`no such file or directory: ${ccpPath}`);
+		console.error(`No such file or directory: ${ccpPath}`);
+		throw {code : 500, message : "Internal Server Error"};
 	}
 	const contents = fs.readFileSync(ccpPath, 'utf8');
 
@@ -68,8 +69,8 @@ exports.enrollAdmin = async (caClient, wallet, organization) => {
 		// Check to see if we've already enrolled the admin user.
 		const identity = await wallet.get(process.env.ADMIN_USER_ID);
 		if (identity) {
-			console.log('An identity for the admin user already exists in the wallet');
-			return;
+			console.error('An identity for the admin user already exists in the wallet');
+			throw {code : 409, message : "Admin already exists."};
 		}
 
 		// Enroll the admin user, and import the new identity into the wallet.

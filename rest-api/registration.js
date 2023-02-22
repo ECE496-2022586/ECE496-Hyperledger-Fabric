@@ -46,16 +46,15 @@ exports.registerAndEnrollUser = async (username, organization) => {
         // Check to see if we've already enrolled the user
         const userIdentity = await wallet.get(username);
         if (userIdentity) {
-            console.log(`An identity for the user ${username} already exists in the wallet`);
-            return;
+            console.error(`An identity for the user ${username} already exists in the wallet`);
+            throw {code : 409, message : "User already exists."};
         }
 
         // Must use an admin to register a new user
         const adminIdentity = await wallet.get(process.env.ADMIN_USER_ID);
         if (!adminIdentity) {
-            console.log('An identity for the admin user does not exist in the wallet');
-            console.log('Enroll the admin user before retrying');
-            return;
+            console.error('An identity for the admin user does not exist in the wallet');
+            throw {code : 500, message : "Internal Server Error."};
         }
 
         // build a user object for authenticating with the CA

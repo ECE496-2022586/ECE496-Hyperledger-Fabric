@@ -11,15 +11,15 @@ exports.invokeTransaction = async (channelName, chaincodeName, organization, use
     // Check to see if we've already enrolled an admin
     const identity = await wallet.get(adminUserId);
     if (!identity) {
-        console.log('An identity for the admin user does not exist in the wallet');
-        return error;
+        console.error('An identity for the admin user does not exist in the wallet');
+        throw {code : 500, message : "Internal Server Error."};
     }
 
     // Check to see if we've already enrolled the user
     const userIdentity = await wallet.get(username);
     if (!userIdentity) {
-        console.log(`No identity for the user ${username} exists in the wallet`);
-        return;
+        console.error(`No identity for the user ${username} exists in the wallet`);
+        throw {code : 404, message : "User does not exist."};
     }
 
     // Create a new gateway instance for interacting with the fabric network.

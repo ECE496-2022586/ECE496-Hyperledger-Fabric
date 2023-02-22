@@ -57,7 +57,7 @@ class AssetTransfer extends Contract {
         const credentials = await ctx.stub.getState(username);
 
         if (!credentials || credentials.toString().length <= 0) {
-            throw new Error("Invalid username");
+            throw {code : 401, message : "Invalid username."};
         } else {
             const credentialsJSON = JSON.parse(credentials);
 
@@ -70,7 +70,7 @@ class AssetTransfer extends Contract {
             const decrypted = bytes.toString(CryptoJS.enc.Utf8);
 
             if (password != decrypted) {
-                throw new Error("Invalid password");
+                throw {code : 401, message : "Invalid password."};
             }
         }
     }
@@ -80,7 +80,7 @@ class AssetTransfer extends Contract {
         const credentials = await ctx.stub.getState(username);
 
         if (!credentials || credentials.length === 0) {
-            throw new Error('Patient does not exist');
+            throw {code : 404, message : "Patient does not exist."};
         }
 
         const credentialsJSON = JSON.parse(credentials);
@@ -104,7 +104,7 @@ class AssetTransfer extends Contract {
         const credentials = await ctx.stub.getState(username);
 
         if (!credentials || credentials.length === 0) {
-            throw new Error('Doctor does not exist');
+            throw {code : 404, message : "Doctor does not exist."};
         }
 
         const credentialsJSON = JSON.parse(credentials);
@@ -126,7 +126,7 @@ class AssetTransfer extends Contract {
         const credentials = await ctx.stub.getState(patient);
 
         if (!credentials || credentials.length === 0) {
-            throw new Error('Patient does not exist');
+            throw {code : 404, message : "Patient does not exist."};
         }
 
         const credentialsJSON = JSON.parse(credentials);
@@ -144,7 +144,7 @@ class AssetTransfer extends Contract {
         const credentials = await ctx.stub.getState(patient);
 
         if (!credentials || credentials.length === 0) {
-            throw new Error('Patient does not exist');
+            throw {code : 404, message : "Patient does not exist."};
         }
 
         const credentialsJSON = JSON.parse(credentials);
@@ -152,7 +152,7 @@ class AssetTransfer extends Contract {
         const index = credentialsJSON['pendingRequests'].findIndex(x => x == doctor);
 
         if (index < 0) {
-            throw new Error('Doctor has not submitted an access request.');
+            throw {code : 400, message : "Cannot approve this request."};
         }
 
         credentialsJSON['pendingRequests'].splice(index, 1);
@@ -166,7 +166,7 @@ class AssetTransfer extends Contract {
         const credentials = await ctx.stub.getState(doctor);
 
         if (!credentials || credentials.length === 0) {
-            throw new Error('Doctor does not exist');
+            throw {code : 404, message : "Doctor does not exist."};
         }
 
         const credentialsJSON = JSON.parse(credentials);
@@ -186,7 +186,7 @@ class AssetTransfer extends Contract {
         const credentials = await ctx.stub.getState(patient);
 
         if (!credentials || credentials.length === 0) {
-            throw new Error('User does not exist');
+            throw {code : 404, message : "Patient does not exist."};
         }
 
         const credentialsJSON = JSON.parse(credentials);
@@ -194,7 +194,7 @@ class AssetTransfer extends Contract {
         const index = credentialsJSON['approvedRequests'].findIndex(x => x == doctor);
 
         if (index < 0) {
-            throw new Error('Cannot remove a request that has not been approved.');
+            throw {code : 400, message : "Cannot remove this request."};
         }
 
         credentialsJSON['approvedRequests'].splice(index, 1);
@@ -206,7 +206,7 @@ class AssetTransfer extends Contract {
         const credentials = await ctx.stub.getState(doctor);
 
         if (!credentials || credentials.length === 0) {
-            throw new Error('Doctor does not exist');
+            throw {code : 404, message : "Doctor does not exist."};
         }
 
         const credentialsJSON = JSON.parse(credentials);

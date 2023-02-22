@@ -166,7 +166,7 @@ app.get("/patients/:patient", authenticateToken, async (req, res) => {
 app.get("/doctors/:doctor", authenticateToken, async (req, res) => {
     try {
         const username = req.params.doctor;
-        
+
         const user = req.user;
 
         if (user.identity != "doctor" || user.username != username){
@@ -229,7 +229,7 @@ app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async
 
         const user = req.user;
 
-        if (user.username != patient){
+        if (user.identity != "patient" || user.username != patient){
             throw {code : 403, message : "User not Authorized."};
         }
 
@@ -266,7 +266,7 @@ app.delete("/patients/:username/approvedRequests/:doctor", authenticateToken, as
 
         const user = req.user;
 
-        if (user.username != patient){
+        if (user.identity != "patient" || user.username != patient){
             throw {code : 403, message : "User not Authorized."};
         }
 
@@ -295,10 +295,11 @@ app.delete("/patients/:username/approvedRequests/:doctor", authenticateToken, as
     }
 })
 
-app.get("/assets", async (req, res) => {
+app.get("/assets", authenticateToken, async (req, res) => {
     try {
-        const organization = req.body.organization;
-        const username = req.body.username;
+        const user = req.user;
+        const organization = user.organization;
+        const username = user.username;
 
         fcn = "GetAllAssets";
         args = [];
@@ -313,11 +314,12 @@ app.get("/assets", async (req, res) => {
     }
 })
 
-app.get("/assets/:id/history", async (req, res) => {
+app.get("/assets/:id/history", authenticateToken, async (req, res) => {
     try {
         const id = req.params.id;
-        const organization = req.body.organization;
-        const username = req.body.username;
+        const user = req.user;
+        const organization = user.organization;
+        const username = user.username;
 
         fcn = "GetAssetHistory";
         args = [id];

@@ -3,6 +3,7 @@ require('dotenv').config()
 const fs = require('fs');
 const path = require('path');
 const FabricCAServices = require('fabric-ca-client');
+const jwt = require('jsonwebtoken')
 
 'use strict';
 
@@ -90,6 +91,18 @@ exports.enrollAdmin = async (caClient, wallet, organization) => {
 	}
 };
 
+exports.authenticateToken = (req, res, next) => {
+	const authHeader = req.headers['authorization'];
+	const token = authHeader && authHeader.split(" ")[1];
+	if (token == null) return res.sendStatus(401);
+
+	jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+		if (err) return res.sendStatus(403);
+		req.user = user;
+		next();
+	})
+};
+
 exports.prettyJSONString = (inputString) => {
 	if (inputString) {
 		return JSON.stringify(JSON.parse(inputString), null, 2);
@@ -97,4 +110,4 @@ exports.prettyJSONString = (inputString) => {
 	else {
 		return inputString;
 	}
-}
+};

@@ -2,10 +2,12 @@ require('dotenv').config()
 
 const express = require('express');
 const bodyParser = require('body-parser');
+const CryptoJS = require("crypto-js");
 const { invokeTransaction } = require('./invoke');
 const { evaluateTransaction } = require('./query');
 const { enrollAdmins, registerAndEnrollUser } = require('./registration');
 const { authenticateToken } = require('./helper');
+const cors = require("cors");
 
 const jwt = require('jsonwebtoken')
 
@@ -15,7 +17,23 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
     extended: false
 }));
-app.listen(5001, () => { console.log("Server started on port 5001") })
+
+app.use(function(req, res, next) {
+    res.header('Access-Control-Allow-Origin: *');
+    res.header('Access-Control-Allow-Methods: GET, POST, PATCH, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token');
+    next();
+});
+
+const corsOptions ={
+   origin:'*', 
+   credentials:true,            //access-control-allow-credentials:true
+   optionSuccessStatus:200,
+}
+
+app.use(cors(corsOptions)) 
+
+app.listen(3001, () => { console.log("Server started on port 3001") })
 
 'use strict';
 
@@ -74,14 +92,16 @@ app.post("/patient", async (req, res) => {
 // Register and enroll new doctor
 app.post("/doctor", async (req, res) => {
     try {
-        const firstName = req.body.firstName;
-        const lastName = req.body.lastName;
+        const firstName = req.body.name;
+        const lastName = "AllAccess";
         const email = req.body.email;
-        const username = req.body.username;
+        const username = req.body.instituteID;
         const password = req.body.password;
-        const encryptionKey = req.body.encryptionKey;
         const identity = req.body.identity;
         const organization = req.body.organization;
+
+        const hash = CryptoJS.SHA256(password);
+        const encryptionKey = CryptoJS.AES.encrypt(username, hash, { mode: CryptoJS.mode.ECB }).toString();
 
         await registerAndEnrollUser(username, organization);
 
@@ -104,13 +124,21 @@ app.post("/doctor", async (req, res) => {
 })
 
 // Login
+// TODO: Fix so if wrong login credentials it doesnt just leave me hanging
 app.post("/login", async (req, res) => {
     try {
         const username = req.body.username;
         const password = req.body.password;
-        const encryptionKey = req.body.encryptionKey;
         const organization = req.body.organization;
         const identity = req.body.identity;
+
+        let encryptionKey
+        let hash
+        if (identity == "doctor") {
+            hash = CryptoJS.SHA256(password);
+            encryptionKey = CryptoJS.AES.encrypt(username, hash, { mode: CryptoJS.mode.ECB }).toString();
+        } else
+            encryptionKey = req.body.encryptionKey;
 
         let fcn = "ValidateLogin";
         let args = [username, password, encryptionKey];
@@ -128,7 +156,9 @@ app.post("/login", async (req, res) => {
 
         const accessToken = jwt.sign(response, process.env.JWT_SECRET);
 
-        res.json(accessToken);
+        resObj = {user: response, token: accessToken}
+        console.log(resObj)
+        res.json(resObj);
     }
     catch (error) {
         console.error(`FAILED: ${error.message}`);
@@ -146,8 +176,7 @@ app.get("/patients/:patient", authenticateToken, async (req, res) => {
         if (user.identity != "doctor" && user.username != username){
             throw {code : 403, message : "User not Authorized."};
         }
-
-        const organization = user.organization;
+        const organization = "hospital";
 
         const fcn = "QueryPatient";
         const args = [username];
@@ -200,7 +229,7 @@ app.post("/patients/:patient/pendingRequests/:doctor", authenticateToken, async 
             throw {code : 403, message : "User not Authorized."};
         }
 
-        const organization = user.organization;
+        const organization = "hospital";
 
         let fcn = "SubmitRequest";
         let args = [patient, doctor];
@@ -225,7 +254,7 @@ app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async
     try {
         const patient = req.params.patient;
         const doctor = req.params.doctor;
-        const encryptionKey = req.body.encryptionKey;
+        const {encryptionKey, password} = req.body;
 
         const user = req.user;
 
@@ -233,10 +262,15 @@ app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async
             throw {code : 403, message : "User not Authorized."};
         }
 
-        const organization = user.organization;
+        const organization = "hospital";
 
-        let fcn = "ApproveRequest";
-        let args = [patient, doctor];
+        let fcn = "ValidateLogin";
+        let args = [patient, password, encryptionKey];
+
+        await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
+
+        fcn = "ApproveRequest";
+        args = [patient, doctor];
 
         await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
 
@@ -279,6 +313,38 @@ app.delete("/patients/:username/approvedRequests/:doctor", authenticateToken, as
 
         fcn = "RemoveAccess";
         args = [patient, doctor];
+
+        await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
+
+        fcn = "QueryPatient";
+        args = [patient];
+
+        const response = await evaluateTransaction(channelName, chaincodeName, organization, patient, fcn, args);
+
+        res.json(response);
+    }
+    catch (error) {
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
+    }
+})
+
+// Delete pendings request
+app.delete("/patients/:username/pendingRequest/:doctor", authenticateToken, async (req, res) => {
+    try {
+        const patient = req.params.username;
+        const doctor = req.params.doctor;
+
+        const user = req.user;
+
+        if (user.identity != "patient" || user.username != patient){
+            throw {code : 403, message : "User not Authorized."};
+        }
+
+        const organization = user.organization;
+
+        let fcn = "DenyRequest";
+        let args = [patient, doctor];
 
         await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
 

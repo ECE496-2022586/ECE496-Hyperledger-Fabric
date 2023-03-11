@@ -218,6 +218,26 @@ class AssetTransfer extends Contract {
         await ctx.stub.putState(doctor, Buffer.from(JSON.stringify(credentialsJSON)));
     }
 
+    async DenyRequest(ctx, patient, doctor) {
+        const credentials = await ctx.stub.getState(patient);
+
+        if (!credentials || credentials.length === 0) {
+            throw {code : 404, message : "Patient does not exist."};
+        }
+
+        const credentialsJSON = JSON.parse(credentials);
+
+        const index = credentialsJSON['pendingRequests'].findIndex(x => x == doctor);
+
+        if (index < 0) {
+            throw {code : 400, message : "Cannot remove this request."};
+        }
+
+        credentialsJSON['pendingRequests'].splice(index, 1);
+
+        await ctx.stub.putState(patient, Buffer.from(JSON.stringify(credentialsJSON)));
+    }
+
     // GetAllAssets returns all assets found in the world state.
     async GetAllAssets(ctx) {
         const allResults = [];

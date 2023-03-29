@@ -124,26 +124,18 @@ app.post("/doctor", async (req, res) => {
 })
 
 // Login
-// TODO: Fix so if wrong login credentials it doesnt just leave me hanging
 app.post("/login", async (req, res) => {
     try {
         const username = req.body.username;
         const password = req.body.password;
+        const encryptionKey = req.body.encryptionKey;
         const organization = req.body.organization;
         const identity = req.body.identity;
-
-        let encryptionKey
-        let hash
-        if (identity == "doctor") {
-            hash = CryptoJS.SHA256(password);
-            encryptionKey = CryptoJS.AES.encrypt(username, hash, { mode: CryptoJS.mode.ECB }).toString();
-        } else
-            encryptionKey = req.body.encryptionKey;
 
         let fcn = "ValidateLogin";
         let args = [username, password, encryptionKey];
 
-        await invokeTransaction(channelName, chaincodeName, organization, username, fcn, args);
+        await evaluateTransaction(channelName, chaincodeName, organization, username, fcn, args);
 
         if (identity == "patient")
             fcn = "QueryPatient";
@@ -156,9 +148,7 @@ app.post("/login", async (req, res) => {
 
         const accessToken = jwt.sign(response, process.env.JWT_SECRET);
 
-        resObj = {user: response, token: accessToken}
-        console.log(resObj)
-        res.json(resObj);
+        res.json(accessToken);
     }
     catch (error) {
         console.error(`FAILED: ${error.message}`);

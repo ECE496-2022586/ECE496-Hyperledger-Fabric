@@ -94,9 +94,9 @@ exports.enrollAdmin = async (caClient, wallet, organization) => {
 exports.authenticateToken = (req, res, next) => {
 	const authHeader = req.headers['authorization'];
 	const token = authHeader && authHeader.split(" ")[1];
-	if (authHeader == null) return res.sendStatus(401);
+	if (token == null) return res.sendStatus(401);
 
-	jwt.verify(authHeader, process.env.JWT_SECRET, (err, user) => {
+	jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
 		if (err) return res.sendStatus(403);
 		req.user = user;
 		next();

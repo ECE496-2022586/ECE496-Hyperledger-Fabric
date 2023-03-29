@@ -176,7 +176,7 @@ app.get("/patients/:patient", authenticateToken, async (req, res) => {
         if (user.identity != "doctor" && user.username != username){
             throw {code : 403, message : "User not Authorized."};
         }
-        const organization = "hospital";
+        const organization = "user.organization";
 
         const fcn = "QueryPatient";
         const args = [username];
@@ -229,9 +229,9 @@ app.post("/patients/:patient/pendingRequests/:doctor", authenticateToken, async 
             throw {code : 403, message : "User not Authorized."};
         }
 
-        const organization = "hospital";
+        const organization = "user.organization";
 
-        let fcn = "SubmitRequest";
+        let fcn = "SubmitAccessRequest";
         let args = [patient, doctor];
 
         await invokeTransaction(channelName, chaincodeName, organization, doctor, fcn, args);
@@ -249,12 +249,11 @@ app.post("/patients/:patient/pendingRequests/:doctor", authenticateToken, async 
     }
 })
 
-// Approve access request
-app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async (req, res) => {
+// Deny access request
+app.delete("/patients/:username/pendingRequest/:doctor", authenticateToken, async (req, res) => {
     try {
-        const patient = req.params.patient;
+        const patient = req.params.username;
         const doctor = req.params.doctor;
-        const {encryptionKey, password} = req.body;
 
         const user = req.user;
 
@@ -262,14 +261,42 @@ app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async
             throw {code : 403, message : "User not Authorized."};
         }
 
-        const organization = "hospital";
+        const organization = user.organization;
 
-        let fcn = "ValidateLogin";
-        let args = [patient, password, encryptionKey];
+        let fcn = "DenyAccessRequest";
+        let args = [patient, doctor];
 
         await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
 
-        fcn = "ApproveRequest";
+        fcn = "QueryPatient";
+        args = [patient];
+
+        const response = await evaluateTransaction(channelName, chaincodeName, organization, patient, fcn, args);
+
+        res.json(response);
+    }
+    catch (error) {
+        console.error(`FAILED: ${error.message}`);
+        return res.status(error.code).send({ status: error.code, message: error.message });
+    }
+})
+
+// Approve access request
+app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async (req, res) => {
+    try {
+        const patient = req.params.patient;
+        const doctor = req.params.doctor;
+        const encryptionKey = req.body.encryptionKey;
+
+        const user = req.user;
+
+        if (user.identity != "patient" || user.username != patient){
+            throw {code : 403, message : "User not Authorized."};
+        }
+
+        const organization = "user.organization";
+
+        fcn = "ApproveAccessRequest";
         args = [patient, doctor];
 
         await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
@@ -292,7 +319,7 @@ app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async
     }
 })
 
-// Delete access request
+// Delete access
 app.delete("/patients/:username/approvedRequests/:doctor", authenticateToken, async (req, res) => {
     try {
         const patient = req.params.username;
@@ -306,45 +333,13 @@ app.delete("/patients/:username/approvedRequests/:doctor", authenticateToken, as
 
         const organization = user.organization;
 
-        let fcn = "RemoveRequest";
+        let fcn = "RemoveAccessRequest";
         let args = [patient, doctor];
 
         await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
 
         fcn = "RemoveAccess";
         args = [patient, doctor];
-
-        await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
-
-        fcn = "QueryPatient";
-        args = [patient];
-
-        const response = await evaluateTransaction(channelName, chaincodeName, organization, patient, fcn, args);
-
-        res.json(response);
-    }
-    catch (error) {
-        console.error(`FAILED: ${error.message}`);
-        return res.status(error.code).send({ status: error.code, message: error.message });
-    }
-})
-
-// Delete pendings request
-app.delete("/patients/:username/pendingRequest/:doctor", authenticateToken, async (req, res) => {
-    try {
-        const patient = req.params.username;
-        const doctor = req.params.doctor;
-
-        const user = req.user;
-
-        if (user.identity != "patient" || user.username != patient){
-            throw {code : 403, message : "User not Authorized."};
-        }
-
-        const organization = user.organization;
-
-        let fcn = "DenyRequest";
-        let args = [patient, doctor];
 
         await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
 

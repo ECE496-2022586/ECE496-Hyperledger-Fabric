@@ -32,7 +32,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions))
 
-app.listen(5001, () => { console.log("Server started on port 5001") })
+app.listen(3001, () => { console.log("Server started on port 3001") })
 
 'use strict';
 
@@ -64,14 +64,13 @@ app.post("/patient", async (req, res) => {
         const email = req.body.email;
         const username = req.body.username;
         const password = req.body.password;
-        const encryptionKey = req.body.encryptionKey;
         const identity = req.body.identity;
         const organization = req.body.organization;
 
         await registerAndEnrollUser(username, organization);
 
         let fcn = "CreatePatient";
-        let args = [firstName, lastName, email, username, password, encryptionKey, identity, organization];
+        let args = [firstName, lastName, email, username, password, identity, organization];
 
         await invokeTransaction(channelName, chaincodeName, organization, username, fcn, args);
 
@@ -96,14 +95,13 @@ app.post("/doctor", async (req, res) => {
         const email = req.body.email;
         const username = req.body.username;
         const password = req.body.password;
-        const encryptionKey = req.body.encryptionKey;
         const identity = req.body.identity;
         const organization = req.body.organization;
 
         await registerAndEnrollUser(username, organization);
 
         let fcn = "CreateDoctor";
-        let args = [firstName, lastName, email, username, password, encryptionKey, identity, organization];
+        let args = [firstName, lastName, email, username, password, identity, organization];
 
         await invokeTransaction(channelName, chaincodeName, organization, username, fcn, args);
 
@@ -125,12 +123,11 @@ app.post("/login", async (req, res) => {
     try {
         const username = req.body.username;
         const password = req.body.password;
-        const encryptionKey = req.body.encryptionKey;
         const organization = req.body.organization;
         const identity = req.body.identity;
 
         let fcn = "ValidateLogin";
-        let args = [username, password, encryptionKey];
+        let args = [username, password];
 
         await evaluateTransaction(channelName, chaincodeName, organization, username, fcn, args);
 
@@ -273,7 +270,7 @@ app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async
     try {
         const patient = req.params.patient;
         const doctor = req.params.doctor;
-        const encryptionKey = req.body.encryptionKey;
+        const password = req.body.password;
 
         const user = req.user;
 
@@ -289,7 +286,7 @@ app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async
         await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
 
         fcn = "EnableAccess";
-        args = [patient, doctor, encryptionKey];
+        args = [patient, doctor, password];
 
         await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
 

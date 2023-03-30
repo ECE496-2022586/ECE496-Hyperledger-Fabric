@@ -12,17 +12,15 @@ const CryptoJS = require("crypto-js");
 class AssetTransfer extends Contract {
 
     // CreatePatient issues a new patient to the world state with given details.
-    async CreatePatient(ctx, firstName, lastName, email, username, password, encryptionKey, identity, organization) {
-        const hash = CryptoJS.SHA256(encryptionKey);
-
-        const ciphertext = CryptoJS.AES.encrypt(password, hash, { mode: CryptoJS.mode.ECB }).toString();
+    async CreatePatient(ctx, firstName, lastName, email, username, password, identity, organization) {
+        const hash = CryptoJS.SHA256(username+password).toString(CryptoJS.enc.Base64);
 
         const credentials = {
             firstName: firstName,
             lastName: lastName,
             email: email,
             username: username,
-            password: ciphertext,
+            password: hash,
             identity: identity,
             organization: organization,
             records: [],
@@ -34,17 +32,15 @@ class AssetTransfer extends Contract {
     }
 
     // CreateDoctor issues a new doctor to the world state with given details.
-    async CreateDoctor(ctx, firstName, lastName, email, username, password, encryptionKey, identity, organization) {
-        const hash = CryptoJS.SHA256(encryptionKey);
-
-        const ciphertext = CryptoJS.AES.encrypt(password, hash, { mode: CryptoJS.mode.ECB }).toString();
+    async CreateDoctor(ctx, firstName, lastName, email, username, password, identity, organization) {
+        const hash = CryptoJS.SHA256(username+password).toString(CryptoJS.enc.Base64);
 
         const credentials = {
             firstName: firstName,
             lastName: lastName,
             email: email,
             username: username,
-            password: ciphertext,
+            password: hash,
             identity: identity,
             organization: organization,
             patients: {}
@@ -54,7 +50,7 @@ class AssetTransfer extends Contract {
     }
 
     // ValidateLogin validates login information for a user given the correct credentials.
-    async ValidateLogin(ctx, username, password, encryptionKey) {
+    async ValidateLogin(ctx, username, password) {
         const credentials = await ctx.stub.getState(username);
 
         if (!credentials || credentials.toString().length <= 0) {
@@ -63,15 +59,11 @@ class AssetTransfer extends Contract {
         } else {
             const credentialsJSON = JSON.parse(credentials);
 
-            const encryptedPassword = credentialsJSON.password;
+            const hashedPassword = credentialsJSON.password;
 
-            const hash = CryptoJS.SHA256(encryptionKey)
+            const hash = CryptoJS.SHA256(username+password).toString(CryptoJS.enc.Base64);
 
-            const bytes = CryptoJS.AES.decrypt(encryptedPassword, hash, { mode: CryptoJS.mode.ECB });
-
-            const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-
-            if (password != decrypted) {
+            if (hash != hashedPassword) {
                 const error = { "status": "error", "code": 401, "message": "Invalid password." };
                 return JSON.stringify(error);
             }
@@ -194,7 +186,7 @@ class AssetTransfer extends Contract {
         await ctx.stub.putState(patient, Buffer.from(JSON.stringify(credentialsJSON)));
     }
 
-    async EnableAccess(ctx, patient, doctor, encryptionKey) {
+    async EnableAccess(ctx, patient, doctor, password) {
         const credentials = await ctx.stub.getState(doctor);
 
         if (!credentials || credentials.length === 0) {
@@ -206,7 +198,7 @@ class AssetTransfer extends Contract {
 
         const hash = CryptoJS.SHA256(doctor);
 
-        const encryptedKey = CryptoJS.AES.encrypt(encryptionKey, hash, { mode: CryptoJS.mode.ECB }).toString();
+        const encryptedKey = CryptoJS.AES.encrypt(password, hash, { mode: CryptoJS.mode.ECB }).toString();
 
         if (!(patient in credentialsJSON['patients'])) {
             credentialsJSON['patients'][patient] = encryptedKey

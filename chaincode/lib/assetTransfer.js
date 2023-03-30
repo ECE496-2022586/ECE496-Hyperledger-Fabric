@@ -25,6 +25,7 @@ class AssetTransfer extends Contract {
             password: ciphertext,
             identity: identity,
             organization: organization,
+            records: [],
             pendingRequests: [],
             approvedRequests: []
         }
@@ -97,7 +98,8 @@ class AssetTransfer extends Contract {
             pendingRequests: credentialsJSON.pendingRequests,
             approvedRequests: credentialsJSON.approvedRequests,
             identity: credentialsJSON.identity,
-            organization: credentialsJSON.organization
+            organization: credentialsJSON.organization,
+            records: credentialsJSON.records,
         }
 
         return JSON.stringify({ "status": "success", "data": patient });
@@ -252,6 +254,59 @@ class AssetTransfer extends Contract {
         await ctx.stub.putState(doctor, Buffer.from(JSON.stringify(credentialsJSON)));
     }
 
+    // CreateMedicalRecord issues a new record to the world state with given details.
+    async CreateMedicalRecord(ctx, patient, doctor, hash) {
+        const id = hash;
+
+        const timestamp = new Date();
+
+        const record = {
+            hash: hash,
+            issuer: doctor,
+            patient: patient,
+            timestamp: timestamp.toLocaleDateString()
+        }
+
+        await ctx.stub.putState(id, Buffer.from(JSON.stringify(record)));
+    }
+
+    async SubmitMedicalRecord(ctx, patient, hash) {
+        const credentials = await ctx.stub.getState(patient);
+
+        if (!credentials || credentials.length === 0) {
+            const error = { "status": "error", "code": 404, "message": "Patient does not exist." };
+            return JSON.stringify(error);
+        }
+
+        const record = await ctx.stub.getState(hash);
+
+        if (!record || record.length === 0) {
+            const error = { "status": "error", "code": 404, "message": "Record does not exist." };
+            return JSON.stringify(error);
+        }
+
+        const credentialsJSON = JSON.parse(credentials);
+        const recordJSON = JSON.parse(record);
+
+        credentialsJSON['records'].push(recordJSON)
+
+        await ctx.stub.putState(patient, Buffer.from(JSON.stringify(credentialsJSON)));
+    }
+
+    // QueryMedicalRecord returns the record stored in the world state with given hash.
+    async QueryMedicalRecord(ctx, hash) {
+        const record = await ctx.stub.getState(hash);
+
+        if (!record || record.length === 0) {
+            const error = { "status": "error", "code": 404, "message": "Record does not exist." };
+            return JSON.stringify(error);
+        }
+
+        const recordJSON = JSON.parse(record);
+
+        return JSON.stringify({ "status": "success", "data": recordJSON });
+    }
+
     // GetAllAssets returns all assets found in the world state.
     async GetAllAssets(ctx) {
         const allResults = [];
@@ -270,7 +325,7 @@ class AssetTransfer extends Contract {
             allResults.push({ Key: result.value.key, Record: record });
             result = await iterator.next();
         }
-        return JSON.stringify(allResults);
+        return JSON.stringify({ "status": "success", "data": allResults });
     }
 
     // GetAssetHistory returns the modification history for the given asset.
@@ -278,7 +333,8 @@ class AssetTransfer extends Contract {
         const exists = await this.AssetExists(ctx, id);
 
         if (!exists) {
-            throw new Error(`The asset ${id} does not exist`);
+            const error = { "status": "error", "code": 404, "message": "Asset does not exist." };
+            return JSON.stringify(error);
         }
 
         let iterator = await ctx.stub.getHistoryForKey(id);
@@ -305,7 +361,7 @@ class AssetTransfer extends Contract {
 
         await iterator.close();
 
-        return result;
+        return JSON.stringify({ "status": "success", "data": result });
     }
 
     // CreateAsset issues a new asset to the world state with given details.

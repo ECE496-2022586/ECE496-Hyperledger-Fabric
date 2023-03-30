@@ -51,5 +51,9 @@ exports.evaluateTransaction = async (channelName, chaincodeName, organization, u
 
     gateway.disconnect();
 
-    return responseJSON;
+    if (responseJSON['status'] != "success") {
+        throw {code : responseJSON.code, message : responseJSON.message};
+    }
+
+    return responseJSON['data'];
 }

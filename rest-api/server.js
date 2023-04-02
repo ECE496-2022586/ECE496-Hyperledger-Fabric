@@ -6,6 +6,7 @@ const { invokeTransaction } = require('./invoke');
 const { evaluateTransaction } = require('./query');
 const { enrollAdmins, registerAndEnrollUser } = require('./registration');
 const { authenticateToken } = require('./helper');
+const CryptoJS = require("crypto-js");
 const cors = require("cors");
 
 const jwt = require('jsonwebtoken')
@@ -64,13 +65,14 @@ app.post("/patient", async (req, res) => {
         const email = req.body.email;
         const username = req.body.username;
         const password = req.body.password;
+        const encryptionKey = req.body.encryptionKey;
         const identity = req.body.identity;
         const organization = req.body.organization;
 
         await registerAndEnrollUser(username, organization);
 
         let fcn = "CreatePatient";
-        let args = [firstName, lastName, email, username, password, identity, organization];
+        let args = [firstName, lastName, email, username, password, encryptionKey, identity, organization];
 
         await invokeTransaction(channelName, chaincodeName, organization, username, fcn, args);
 
@@ -90,18 +92,23 @@ app.post("/patient", async (req, res) => {
 // Register and enroll new doctor
 app.post("/doctor", async (req, res) => {
     try {
-        const firstName = req.body.firstName;
-        const lastName = req.body.lastName;
+        const firstName = req.body.name;
+        const lastName = "ALLACCESS";
         const email = req.body.email;
-        const username = req.body.username;
+        const username = req.body.instituteID;
         const password = req.body.password;
+        // const encryptionKey = req.body.encryptionKey;
         const identity = req.body.identity;
         const organization = req.body.organization;
 
         await registerAndEnrollUser(username, organization);
 
+
+        const hash = CryptoJS.SHA256(password);
+        const encryptionKey = CryptoJS.AES.encrypt(username, hash, { mode: CryptoJS.mode.ECB }).toString();
+
         let fcn = "CreateDoctor";
-        let args = [firstName, lastName, email, username, password, identity, organization];
+        let args = [firstName, lastName, email, username, password, encryptionKey, identity, organization];
 
         await invokeTransaction(channelName, chaincodeName, organization, username, fcn, args);
 
@@ -126,8 +133,16 @@ app.post("/login", async (req, res) => {
         const organization = req.body.organization;
         const identity = req.body.identity;
 
+        let encryptionKey
+        let hash
+        if (identity == "doctor") {
+            hash = CryptoJS.SHA256(password);
+            encryptionKey = CryptoJS.AES.encrypt(username, hash, { mode: CryptoJS.mode.ECB }).toString();
+        } else
+            encryptionKey = req.body.encryptionKey;
+
         let fcn = "ValidateLogin";
-        let args = [username, password];
+        let args = [username, password, encryptionKey];
 
         await evaluateTransaction(channelName, chaincodeName, organization, username, fcn, args);
 
@@ -142,7 +157,9 @@ app.post("/login", async (req, res) => {
 
         const accessToken = jwt.sign(response, process.env.JWT_SECRET);
 
-        res.json(accessToken);
+        resObj = {user: response, token: accessToken}
+        console.log(resObj)
+        res.json(resObj);
     }
     catch (error) {
         console.error(`FAILED: ${error.message}`);
@@ -270,7 +287,7 @@ app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async
     try {
         const patient = req.params.patient;
         const doctor = req.params.doctor;
-        const password = req.body.password;
+        const encryptionKey = req.body.encryptionKey;
 
         const user = req.user;
 
@@ -286,7 +303,7 @@ app.post("/patients/:patient/approvedRequests/:doctor", authenticateToken, async
         await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
 
         fcn = "EnableAccess";
-        args = [patient, doctor, password];
+        args = [patient, doctor, encryptionKey];
 
         await invokeTransaction(channelName, chaincodeName, organization, patient, fcn, args);
 
@@ -345,6 +362,7 @@ app.post("/patients/:patient/records/:hash", authenticateToken, async (req, res)
     try {
         const patient = req.params.patient;
         const hash = req.params.hash;
+        const fileName = req.body.fileName;
 
         const user = req.user;
         const username = user.username;
@@ -364,7 +382,7 @@ app.post("/patients/:patient/records/:hash", authenticateToken, async (req, res)
         }
 
         fcn = "CreateMedicalRecord";
-        args = [patient, username, hash];
+        args = [patient, username, hash, fileName];
 
         await invokeTransaction(channelName, chaincodeName, organization, username, fcn, args);
 
@@ -410,7 +428,7 @@ app.get("/records/:hash", authenticateToken, async (req, res) => {
 
 app.get("/assets", authenticateToken, async (req, res) => {
     try {
-        const user = req.user;
+        const user = req.body.patient;
         const organization = user.organization;
         const username = user.username;
 
